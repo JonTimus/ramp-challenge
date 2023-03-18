@@ -1,5 +1,5 @@
 import Downshift from "downshift"
-import { useCallback, useState } from "react"
+import { useCallback, useState, useRef, useEffect } from "react"
 import classNames from "classnames"
 import { DropdownPosition, GetDropdownPositionFn, InputSelectOnChange, InputSelectProps } from "./types"
 
@@ -17,6 +17,7 @@ export function InputSelect<TItem>({
     top: 0,
     left: 0,
   })
+  const inputRef = useRef<HTMLDivElement>(null)
 
   const onChange = useCallback<InputSelectOnChange<TItem>>(
     (selectedItem) => {
@@ -29,6 +30,20 @@ export function InputSelect<TItem>({
     },
     [consumerOnChange]
   )
+
+  useEffect(() => {
+    function handleScroll() {
+      if (inputRef.current !== null) {
+        setDropdownPosition(getDropdownPosition(inputRef.current))
+      }
+    }
+
+    window.addEventListener("scroll", handleScroll)
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll)
+    }
+  }, [])
 
   return (
     <Downshift<TItem>
@@ -62,6 +77,7 @@ export function InputSelect<TItem>({
                 setDropdownPosition(getDropdownPosition(event.target))
                 toggleProps.onClick(event)
               }}
+              ref={inputRef}
             >
               {inputValue}
             </div>
@@ -121,9 +137,12 @@ const getDropdownPosition: GetDropdownPositionFn = (target) => {
   if (target instanceof Element) {
     const { top, left } = target.getBoundingClientRect()
     const { scrollY } = window
+    const bottom = window.innerHeight - top
+    const maxHeight = bottom > top ? bottom : top
     return {
-      top: scrollY + top + 63,
+      top: scrollY + top,
       left,
+      maxHeight,
     }
   }
 
